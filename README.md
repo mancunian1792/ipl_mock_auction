@@ -8,8 +8,8 @@ Most of my friends, including me, are interested in cricket. The corona crisis h
 1. Each team can only select 11 players.
 2. Batsman - Min 3 Max 5
 3. Bowlers - Min 3 Max 5
-4 .All Rounders - Min 1 Max 3
-5 Wicketkeepers - 1
+4. All Rounders - Min 1 Max 3
+5. Wicketkeepers - 1
 6. Max Spending limit - 30 crores.
 7 . Overseas Players - 4
 
