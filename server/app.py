@@ -4,6 +4,8 @@ import pandas as pd
 from pulp import lpSum, LpVariable, LpProblem, LpMaximize
 import re
 import os
+import numpy as np
+from scipy.stats import binom
 app = Flask(__name__)
 FILES_LOCATION = "./server/files/"
 
@@ -42,6 +44,41 @@ def summary(prob):
        "total_cost": total_cost,
        "total_rating": total_rating 
     }
+def get_bidding_increment(price):
+    if price <= 0.75:
+        return 0.1
+    elif (price >= 0.75 ) and (price < 1.5):
+        return 0.2
+    elif (price >= 1.5) and (price < 3.5):
+        return 0.3
+    elif (price >= 3.5) and (price < 5):
+        return 0.5
+    else:
+        return 1
+        
+def price_after_betting(base_price, rounds):
+    price = base_price
+    while(rounds > 0):
+        price += get_bidding_increment(price)
+        price = round(price, 1)
+        rounds-=1
+    return price
+
+def simulate_price(base_price, n=20):
+    inv_base_price_dict = {2: ">90", 1.5: "80-90", 1: "60-80", 0.75:"50-60", 0.5:"40-50", 0.4:"30-40", 0.3:"<30"}
+    prob_dist = {
+    ">90": [binom.pmf(i, n, 0.4) for i in range(n+1)],
+    "80-90": [binom.pmf(i, n, 0.3) for i in range(n+1)],
+    "60-80": [binom.pmf(i, n, 0.2) for i in range(n+1)],
+    "50-60": [binom.pmf(i, n, 0.15) for i in range(n+1)],
+    "40-50": [binom.pmf(i, n, 0.15) for i in range(n+1)],
+    "30-40": [binom.pmf(i, n, 0.12) for i in range(n+1)],
+    "<30": [binom.pmf(i, n, 0.1) for i in range(n+1)]
+    }
+    prices = [price_after_betting(base_price, i) for i in range(n+1)]
+    prob = prob_dist[inv_base_price_dict[base_price]]
+    mean_simulated = sum([prices[i] * prob[i] for i in range(n+1)])
+    return mean_simulated if mean_simulated > base_price else base_price
 ################################################################################################################################
 
 @app.route("/")
@@ -76,16 +113,16 @@ def get_optimal11():
     args = request.get_json()
     all_players = pd.read_csv("./server/files/all_players.csv")
     all_players = list(all_players["player_name"].values)
-    print(all_players)
     removed_players = []
     if 'removed_players.csv' in os.listdir(FILES_LOCATION):
         removed_players = pd.read_csv("./server/files/removed_players.csv")
         removed_players = list(removed_players["player_name"].values)
     updated_players = [x for x in all_players if x not in removed_players]
-    print(updated_players)
 
     data = pd.read_csv("./server/files/IPL-aggregated-stats_final.csv")
     data = data[data.PLAYER.isin(updated_players)]
+
+    
     indians = list(data[data["overseas_or_indian"]=="Indian"]["PLAYER"])
     overseas = list(data[data["overseas_or_indian"]=="Overseas"]["PLAYER"])
     batsman = list(data[data.position=="BAT"]["PLAYER"])
@@ -116,13 +153,20 @@ def get_optimal11():
     max_ar = int(args["max_ar"])
     ind_needed = int(args["ind_needed"])
     ovr_needed = int(args["ovr_needed"])
+    isSimulated = args["isSimulated"]
+
+    if isSimulated:
+        data.base_price = data.base_price.astype(float)
+        data["simulated_price"] = list(data["base_price"].apply(lambda x : simulate_price(x)))
+        simulated_price = dict(zip(updated_players, data["simulated_price"]))
 
     ### Construct Binary Integer Optimization problem
+    priceToChose = simulated_price if isSimulated else base_prices
     prob = LpProblem("IPL_Auction", LpMaximize)
     rewards = []
     costs = []
     for k, _ in players_lp.items():
-        costs += lpSum(base_prices[k] * players_lp[k])
+        costs += lpSum(priceToChose[k] * players_lp[k])
         rewards += lpSum(median_ratings[k] * players_lp[k])
     prob+= lpSum(rewards)
     prob += lpSum(costs) <= max_available_cost
