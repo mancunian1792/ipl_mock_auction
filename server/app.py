@@ -95,7 +95,7 @@ def remove_player_from_list():
             df.to_csv("./server/files/removed_players.csv", index=False)
         else:
             # Update the list
-            df = pd.read_csv(".server/files/removed_players.csv")
+            df = pd.read_csv("./server/files/removed_players.csv")
             players = list(df["player_name"])
             players.append(name)
             df.to_csv("./server/files/removed_players.csv", index=False)
