@@ -18,6 +18,6 @@ Around 240 players , throughout the history of IPL, were chosen by them and a li
 
 ### IDEA:
 Being a data scientist , it was right up my ally and i wanted to build a system that could help me in choosing the best players . 
-**Scraping** -Scraped through the ipl website for stats of all the players from 2008-2019.
-**Pre-Processing** - Created a heuristic rating from all the stats
-**Optimization** -  Used **PuLP** package to solve an Binary Integer Programming optimization problem.
+1. **Scraping** -Scraped through the ipl website for stats of all the players from 2008-2019.
+2. **Pre-Processing** - Created a heuristic rating from all the stats
+3. **Optimization** -  Used **PuLP** package to solve an Binary Integer Programming optimization problem.
